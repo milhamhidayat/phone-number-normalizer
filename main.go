@@ -31,6 +31,7 @@ func main() {
 	must(err)
 	defer db.Close()
 	must(db.Ping())
+	must(cratePhoneNumbersTable(db))
 }
 
 func must(err error) {
@@ -56,6 +57,16 @@ func resetDB(db *sql.DB, name string) error {
 	}
 	fmt.Println("Successfully drop db")
 	return createDB(db, dbName)
+}
+
+func cratePhoneNumbersTable(db *sql.DB) error {
+	statement := fmt.Sprintf(`
+		CREATE TABLE IF NOT EXISTS phone_numbers (
+			id SERIAL,
+			phone_number VARCHAR(255)
+		)`)
+	_, err := db.Exec(statement)
+	return err
 }
 
 // func normalize(phone string) string {

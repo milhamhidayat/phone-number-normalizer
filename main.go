@@ -20,10 +20,10 @@ func main() {
 	// reset db first
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=disable", host, port, user, password)
 	db, err := sql.Open("postgres", psqlInfo)
-	// db.Close()
 	must(err)
 	err = resetDB(db, dbName)
 	must(err)
+	db.Close()
 
 	// connect to new database that has been crated
 	psqlInfo = fmt.Sprintf("%s dbname=%s", psqlInfo, dbName)
@@ -31,7 +31,25 @@ func main() {
 	must(err)
 	defer db.Close()
 	must(db.Ping())
-	must(cratePhoneNumbersTable(db))
+	must(createPhoneNumbersTable(db))
+
+	id, err := insertPhoneNumber(db, "123456789")
+	must(err)
+	id, err = insertPhoneNumber(db, "123 456 7891")
+	must(err)
+	id, err = insertPhoneNumber(db, "(123) 456 7892")
+	must(err)
+	id, err = insertPhoneNumber(db, "(123) 456-7893")
+	must(err)
+	id, err = insertPhoneNumber(db, "123-456-7894")
+	must(err)
+	id, err = insertPhoneNumber(db, "123-456-7890")
+	must(err)
+	id, err = insertPhoneNumber(db, "1234567892")
+	must(err)
+	id, err = insertPhoneNumber(db, "(123) 456-7890")
+	must(err)
+	fmt.Println("id : ", id)
 }
 
 func must(err error) {
@@ -59,14 +77,28 @@ func resetDB(db *sql.DB, name string) error {
 	return createDB(db, dbName)
 }
 
-func cratePhoneNumbersTable(db *sql.DB) error {
+func createPhoneNumbersTable(db *sql.DB) error {
 	statement := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS phone_numbers (
 			id SERIAL,
 			phone_number VARCHAR(255)
 		)`)
 	_, err := db.Exec(statement)
-	return err
+	if err != nil {
+		return err
+	}
+	fmt.Println("Successfully create phone_numbers table")
+	return nil
+}
+
+func insertPhoneNumber(db *sql.DB, phone string) (int, error) {
+	var id int
+	statement := `INSERT INTO phone_numbers (phone_number) VALUES($1) RETURNING id`
+	err := db.QueryRow(statement, phone).Scan(&id)
+	if err != nil {
+		return -1, err
+	}
+	return id, nil
 }
 
 // func normalize(phone string) string {

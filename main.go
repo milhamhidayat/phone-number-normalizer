@@ -16,6 +16,11 @@ const (
 	dbName   = "gophercises_phone"
 )
 
+type phone struct {
+	ID     int
+	Number string
+}
+
 func main() {
 	// reset db first
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=disable", host, port, user, password)
@@ -33,23 +38,33 @@ func main() {
 	must(db.Ping())
 	must(createPhoneNumbersTable(db))
 
-	id, err := insertPhoneNumber(db, "123456789")
+	_, err = insertPhoneNumber(db, "123456789")
 	must(err)
-	id, err = insertPhoneNumber(db, "123 456 7891")
+	_, err = insertPhoneNumber(db, "123 456 7891")
 	must(err)
-	id, err = insertPhoneNumber(db, "(123) 456 7892")
+	id, err := insertPhoneNumber(db, "(123) 456 7892")
 	must(err)
-	id, err = insertPhoneNumber(db, "(123) 456-7893")
+	_, err = insertPhoneNumber(db, "(123) 456-7893")
 	must(err)
-	id, err = insertPhoneNumber(db, "123-456-7894")
+	_, err = insertPhoneNumber(db, "123-456-7894")
 	must(err)
-	id, err = insertPhoneNumber(db, "123-456-7890")
+	_, err = insertPhoneNumber(db, "123-456-7890")
 	must(err)
-	id, err = insertPhoneNumber(db, "1234567892")
+	_, err = insertPhoneNumber(db, "1234567892")
 	must(err)
-	id, err = insertPhoneNumber(db, "(123) 456-7890")
+	_, err = insertPhoneNumber(db, "(123) 456-7890")
 	must(err)
-	fmt.Println("id : ", id)
+
+	number, err := getPhoneNumber(db, id)
+	must(err)
+	fmt.Println("Number is :", number)
+
+	phones, err := allPhoneNumber(db)
+	must(err)
+	fmt.Println("=============")
+	fmt.Printf("%+v\n", phones)
+	fmt.Println("=============")
+
 }
 
 func must(err error) {
@@ -99,6 +114,39 @@ func insertPhoneNumber(db *sql.DB, phone string) (int, error) {
 		return -1, err
 	}
 	return id, nil
+}
+
+func getPhoneNumber(db *sql.DB, id int) (string, error) {
+	var number string
+	row := db.QueryRow("SELECT phone_number FROM phone_numbers WHERE id = $1", id)
+	err := row.Scan(&number)
+	if err != nil {
+		return "", err
+	}
+	return number, nil
+
+}
+
+func allPhoneNumber(db *sql.DB) ([]phone, error) {
+	rows, err := db.Query("SELECT id, phone_number FROM phone_numbers")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var phoneNumbers []phone
+	for rows.Next() {
+		var p phone
+		err := rows.Scan(&p.ID, &p.Number)
+		if err != nil {
+			return nil, err
+		}
+		phoneNumbers = append(phoneNumbers, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return phoneNumbers, nil
 }
 
 // func normalize(phone string) string {

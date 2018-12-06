@@ -61,9 +61,22 @@ func main() {
 
 	phones, err := allPhoneNumber(db)
 	must(err)
-	fmt.Println("=============")
-	fmt.Printf("%+v\n", phones)
-	fmt.Println("=============")
+	for _, p := range phones {
+		fmt.Printf("Working on... %+v\n", p)
+		number := normalize(p.Number)
+		if number != p.Number {
+			existing, err := findPhone(db, number)
+			must(err)
+			if existing != nil {
+				must(deletePhone(db, p.ID))
+			} else {
+				p.Number = number
+				must(updatePhone(db, p))
+			}
+		} else {
+			fmt.Println("no change required")
+		}
+	}
 
 }
 
@@ -147,6 +160,32 @@ func allPhoneNumber(db *sql.DB) ([]phone, error) {
 		return nil, err
 	}
 	return phoneNumbers, nil
+}
+
+func findPhone(db *sql.DB, number string) (*phone, error) {
+	var p phone
+	row := db.QueryRow("SELECT * FROM phone_numbers WHERE phone_number = $1", number)
+	err := row.Scan(&p.ID, &p.Number)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+
+	}
+	return &p, nil
+}
+
+func deletePhone(db *sql.DB, id int) error {
+	statement := `DELETE FROM phone_numbers WHERE id = $1`
+	_, err := db.Exec(statement, id)
+	return err
+}
+
+func updatePhone(db *sql.DB, p phone) error {
+	statement := `UPDATE phone_numbers SET phone_number = $2 WHERE id = $1`
+	_, err := db.Exec(statement, p.ID, p.Number)
+	return err
 }
 
 // func normalize(phone string) string {

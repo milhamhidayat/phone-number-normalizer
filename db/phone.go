@@ -14,6 +14,7 @@ func Reset(driverName, dataSource, dbName string) error {
 	if err != nil {
 		return err
 	}
+	return db.Close()
 }
 
 func createDB(db *sql.DB, name string) error {

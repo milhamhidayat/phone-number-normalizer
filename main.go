@@ -194,7 +194,7 @@ func updatePhone(db *sql.DB, p phone) error {
 // 	// when iterate, string will be []rune
 // 	for _, ch := range phone {
 // 		// condition to check if ch >= 0 && ch <= 9
-// 		if ch >= '0' && ch <= '9' {
+// 		if ch >= '0' && ch <= '9' {§
 // 			buf.WriteRune(ch)
 // 		}
 // 	}

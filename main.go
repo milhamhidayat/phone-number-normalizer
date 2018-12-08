@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	db "phone-number-normalizer/db"
 	"regexp"
 
 	_ "github.com/lib/pq"
@@ -24,19 +25,11 @@ type phone struct {
 func main() {
 	// reset db first
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=disable", host, port, user, password)
-	db, err := sql.Open("postgres", psqlInfo)
-	must(err)
-	err = resetDB(db, dbName)
-	must(err)
-	db.Close()
+	must(db.Reset("postgres", psqlInfo, dbName))
 
 	// connect to new database that has been crated
 	psqlInfo = fmt.Sprintf("%s dbname=%s", psqlInfo, dbName)
-	db, err = sql.Open("postgres", psqlInfo)
-	must(err)
-	defer db.Close()
-	must(db.Ping())
-	must(createPhoneNumbersTable(db))
+	must(db.Migrate("postgres", psqlInfo))
 
 	_, err = insertPhoneNumber(db, "123456789")
 	must(err)
@@ -85,38 +78,6 @@ func must(err error) {
 		fmt.Println(err)
 		panic(err)
 	}
-}
-
-func createDB(db *sql.DB, name string) error {
-	_, err := db.Exec("CREATE DATABASE " + name)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Successfully create db")
-	return nil
-}
-
-func resetDB(db *sql.DB, name string) error {
-	_, err := db.Exec("DROP DATABASE IF EXISTS " + name)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Successfully drop db")
-	return createDB(db, dbName)
-}
-
-func createPhoneNumbersTable(db *sql.DB) error {
-	statement := fmt.Sprintf(`
-		CREATE TABLE IF NOT EXISTS phone_numbers (
-			id SERIAL,
-			phone_number VARCHAR(255)
-		)`)
-	_, err := db.Exec(statement)
-	if err != nil {
-		return err
-	}
-	fmt.Println("Successfully create phone_numbers table")
-	return nil
 }
 
 func insertPhoneNumber(db *sql.DB, phone string) (int, error) {
